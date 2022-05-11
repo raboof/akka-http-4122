@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
-val https = {
+val https =
   import java.io.InputStream
   import java.security.{ KeyStore, SecureRandom }
 
@@ -39,8 +39,13 @@ val https = {
 
   val sslContext: SSLContext = SSLContext.getInstance("TLS")
   sslContext.init(keyManagerFactory.getKeyManagers, tmf.getTrustManagers, new SecureRandom)
-  ConnectionContext.httpsServer(sslContext)
-}
+
+  ConnectionContext.httpsServer(() =>
+    val engine = sslContext.createSSLEngine()
+    engine.setUseClientMode(false)
+    engine.setNeedClientAuth(true)
+    engine
+  )
 
 @main
 def main =
@@ -57,6 +62,7 @@ def main =
         info =>
           if (info.session.getCipherSuite != "TLS_AES_256_GCM_SHA384")
             log.info(info.session.getCipherSuite)
+          //log.info(info.session.getPeerCertificates.size.toString)
           complete(info.session.getCipherSuite)
     ))
   Await.result(sys.whenTerminated, Duration.Inf)
