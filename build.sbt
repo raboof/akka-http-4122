@@ -5,6 +5,9 @@ val AkkaHttpVersion = "10.2.7"
 
 Compile / resourceDirectory := baseDirectory.value / "resources"
 
+fork := true
+//javaOptions += "-Djavax.net.debug=all"
+
 libraryDependencies ++= Seq(
   "ch.qos.logback" % "logback-classic" % "1.2.10"
 ) ++ Seq(

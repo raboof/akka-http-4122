@@ -4,7 +4,11 @@ import akka.http._
 import akka.http.scaladsl._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server.Directives._
+
 import org.slf4j.LoggerFactory
+
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 
 val https = {
   import java.io.InputStream
@@ -55,3 +59,4 @@ def main =
             log.info(info.session.getCipherSuite)
           complete(info.session.getCipherSuite)
     ))
+  Await.result(sys.whenTerminated, Duration.Inf)
