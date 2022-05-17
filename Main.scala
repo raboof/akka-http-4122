@@ -89,7 +89,7 @@ object Main extends App {
 
   implicit val sys: ActorSystem[Nothing] = ActorSystem(Behaviors.empty, "test")
   Http()
-    .newServerAt("localhost", 8443)
+    .newServerAt("here.mtls.proxy.com", 8443)
     .enableHttps(https)
     .bind(
       headerValueByType[`Tls-Session-Info`](`Tls-Session-Info`)(
