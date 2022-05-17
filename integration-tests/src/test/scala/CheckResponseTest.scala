@@ -29,7 +29,7 @@ trait CheckResponseTestScope {
       val password: Array[Char] = "testpass".toCharArray
 
     val ks: KeyStore = KeyStore.getInstance("PKCS12")
-    val keystore: InputStream = getClass.getClassLoader.getResourceAsStream("truststore.p12")
+    val keystore: InputStream = getClass.getClassLoader.getResourceAsStream("clientcert.p12")
 
     require(keystore != null, "Keystore required!")
     ks.load(keystore, password)
