@@ -1,4 +1,4 @@
-all: client.crt.pem server.p12 demoCA/private/ca.p12
+all: client.p12 server.p12 demoCA/private/ca.p12
 
 HOSTNAME=here.mtls.proxy.com
 
@@ -19,6 +19,9 @@ server.p12: server.key.pem server.crt.pem
 
 client.csr: client.key.pem
 	openssl req -new -key $^ -out $@ -subj "/C=GB/ST=London/L=London/O=Global Security/OU=IT Department/CN=client" -addext 'extendedKeyUsage=clientAuth'
+
+client.p12: client.key.pem client.crt.pem
+	openssl pkcs12 -export -out $@ -in client.crt.pem -inkey client.key.pem -passout pass:changeme
 
 %.crt.pem: %.csr demoCA/private/cakey.pem demoCA/cacert.pem demoCA/serial demoCA/index.txt
 	openssl ca -days 1650 -notext -batch -in $< -out $@

@@ -25,38 +25,26 @@ trait CheckResponseTestScope {
   val testUrl = "https://here.mtls.proxy.com:8443"
   implicit val system = ActorSystem()
   implicit val dispatcher = system.dispatcher
-  val sslContext = {
-    import java.io.InputStream
-    import java.security.{ KeyStore, SecureRandom }
-  
-    import javax.net.ssl.{ KeyManagerFactory, SSLContext, TrustManagerFactory }
-    import akka.actor.ActorSystem
-    import akka.http.scaladsl.server.{ Directives, Route }
-    import akka.http.scaladsl.{ ConnectionContext, Http, HttpsConnectionContext }
-    implicit val system = ActorSystem()
-    implicit val dispatcher = system.dispatcher
-  
-    // Manual HTTPS configuration
+  val https = {
+      val password: Array[Char] = "changeme".toCharArray
 
-    val ks: KeyStore = KeyStore.getInstance(KeyStore.getDefaultType)
-    ks.load(null, "abcdef".toCharArray)
-    ks.setCertificateEntry("cert", loadX509Certificate("client.crt.pem"))
-    ks.setCertificateEntry("ca", loadX509Certificate("demoCA/cacert.pem"))
+    val ks: KeyStore = KeyStore.getInstance("PKCS12")
+    val keystore: InputStream = getClass.getClassLoader.getResourceAsStream("client.p12")
+
+    require(keystore != null, "Keystore required!")
+    ks.load(keystore, password)
 
     val keyManagerFactory: KeyManagerFactory = KeyManagerFactory.getInstance("SunX509")
-    keyManagerFactory.init(ks, "abcdef".toCharArray)
+    keyManagerFactory.init(ks, password)
 
-    val keyStore = KeyStore.getInstance(KeyStore.getDefaultType)
-    keyStore.load(null, null)
-    keyStore.setCertificateEntry("cert", loadX509Certificate("demoCA/cacert.pem"))
+    val ts: KeyStore = KeyStore.getInstance("JKS")
+    ts.load(null, password)
+    ts.setCertificateEntry("cert", loadX509Certificate("demoCA/cacert.pem"))
     val tmf: TrustManagerFactory = TrustManagerFactory.getInstance("SunX509")
-    tmf.init(keyStore)
+    tmf.init(ts)
 
-    val result: SSLContext = SSLContext.getInstance("TLSv1.3")
-    result.init(keyManagerFactory.getKeyManagers, tmf.getTrustManagers, new SecureRandom)
-    result
-  }
-  val https = {
+    val sslContext: SSLContext = SSLContext.getInstance("TLSv1.3")
+    sslContext.init(keyManagerFactory.getKeyManagers, tmf.getTrustManagers, new SecureRandom)
     //ConnectionContext.httpsClient(sslContext)
     // I know is deprecated but I couldn't find a quick way to set the enabled protocol and cipher suites
     ConnectionContext.https(sslContext, enabledProtocols = Some(List("TLSv1.3")), enabledCipherSuites = Some(List("TLS_AES_256_GCM_SHA384")))
