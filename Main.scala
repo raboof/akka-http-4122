@@ -3,8 +3,9 @@ import akka.actor.typed.scaladsl._
 import akka.http._
 import akka.http.scaladsl._
 import akka.http.scaladsl.model.headers._
+import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Directives._
-
+import akka.pki.pem.PEMDecoder
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.Await
@@ -27,8 +28,8 @@ object Main extends App {
     val password: Array[Char] = "changeme".toCharArray // do not store passwords in code, read them from somewhere safe!
   
     val ks: KeyStore = KeyStore.getInstance("PKCS12")
-    val keystore: InputStream = getClass.getClassLoader.getResourceAsStream("example.com.p12")
-  
+    val keystore: InputStream = getClass.getClassLoader.getResourceAsStream("server.p12")
+
     require(keystore != null, "Keystore required!")
     ks.load(keystore, password)
   
@@ -61,9 +62,10 @@ object Main extends App {
       headerValueByType[`Tls-Session-Info`](`Tls-Session-Info`)(
         info => {
           if (info.session.getCipherSuite != "TLS_AES_256_GCM_SHA384")
-            log.info(info.session.getCipherSuite)
+            complete(InternalServerError)
           //log.info(info.session.getPeerCertificates.size.toString)
-          complete(info.session.getCipherSuite)
+          else
+            complete(info.session.getCipherSuite)
         }
     ))
   Await.result(sys.whenTerminated, Duration.Inf)
