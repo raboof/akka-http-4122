@@ -40,6 +40,7 @@ object Main extends App {
     keyManagerFactory.init(ks, password)
   
     val tmf: TrustManagerFactory = TrustManagerFactory.getInstance("SunX509")
+
     val certificates: Seq[X509Certificate] = {
       val dashes = "[-]{5}"
       val splitCertificatePattern: Regex = s"(?s)${dashes}BEGIN CERTIFICATE$dashes.+?${dashes}END CERTIFICATE$dashes(?-s)".r
@@ -59,9 +60,11 @@ object Main extends App {
           .asInstanceOf[X509Certificate]
       }
     }
+
     val keyStoreFromPem: KeyStore = {
-      val keyStore: KeyStore = KeyStore.getInstance(KeyStore.getDefaultType)
+      val keyStore = KeyStore.getInstance(KeyStore.getDefaultType)
       keyStore.load(null, password)
+      println(certificates.size)
       certificates.zipWithIndex.foreach {
         case (certificate, index) =>
           keyStore.setCertificateEntry(s"cert$index", certificate)
@@ -72,11 +75,11 @@ object Main extends App {
   
     val sslContext: SSLContext = SSLContext.getInstance("TLS")
     sslContext.init(keyManagerFactory.getKeyManagers, tmf.getTrustManagers, new SecureRandom)
-  
+
     ConnectionContext.httpsServer(() => {
       val engine = sslContext.createSSLEngine()
       engine.setUseClientMode(false)
-      engine.setNeedClientAuth(false)
+      engine.setNeedClientAuth(true)
       engine
     })
   }
@@ -92,11 +95,13 @@ object Main extends App {
     .bind(
       headerValueByType[`Tls-Session-Info`](`Tls-Session-Info`)(
         info => {
-          if (info.session.getCipherSuite != "TLS_AES_256_GCM_SHA384")
+          if (info.session.getCipherSuite != "TLS_AES_256_GCM_SHA384") {
+            log.info(info.session.getCipherSuite)
             complete(InternalServerError)
-          //log.info(info.session.getPeerCertificates.size.toString)
-          else
+          } else {
+            //log.info(info.session.getPeerCertificates.size.toString)
             complete(info.session.getCipherSuite)
+          }
         }
     ))
   Await.result(sys.whenTerminated, Duration.Inf)
