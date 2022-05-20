@@ -22,7 +22,7 @@ class CheckResponseTest extends wordspec.AnyWordSpec with CheckResponseTestScope
 }
 
 trait CheckResponseTestScope {
-  val testUrl = "https://example.com:8443"
+  val testUrl = "https://here.mtls.proxy.com:8443"
   implicit val system = ActorSystem()
   implicit val dispatcher = system.dispatcher
   val sslContext = {

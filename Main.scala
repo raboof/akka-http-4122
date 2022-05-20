@@ -5,11 +5,14 @@ import akka.http.scaladsl._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Directives._
-import akka.pki.pem.PEMDecoder
 import org.slf4j.LoggerFactory
 
+import java.io.ByteArrayInputStream
+import java.security.cert.{CertificateFactory, X509Certificate}
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
+import scala.io.Source
+import scala.util.matching.Regex
 
 object Main extends App {
   val https = {
@@ -27,7 +30,7 @@ object Main extends App {
   
     val password: Array[Char] = "changeme".toCharArray // do not store passwords in code, read them from somewhere safe!
   
-    val ks: KeyStore = KeyStore.getInstance("PKCS12")
+    val ks: KeyStore = KeyStore.getInstance("JKS")
     val keystore: InputStream = getClass.getClassLoader.getResourceAsStream("server.p12")
 
     require(keystore != null, "Keystore required!")
@@ -37,7 +40,35 @@ object Main extends App {
     keyManagerFactory.init(ks, password)
   
     val tmf: TrustManagerFactory = TrustManagerFactory.getInstance("SunX509")
-    tmf.init(ks)
+    val certificates: Seq[X509Certificate] = {
+      val dashes = "[-]{5}"
+      val splitCertificatePattern: Regex = s"(?s)${dashes}BEGIN CERTIFICATE$dashes.+?${dashes}END CERTIFICATE$dashes(?-s)".r
+      val cf = CertificateFactory.getInstance("X.509")
+      val cert = Source
+        .fromInputStream(getClass.getClassLoader.getResourceAsStream("demoCA/cacert.pem"))
+        .toList
+        .mkString("")
+
+      val certificates = splitCertificatePattern
+        .findAllIn(cert)
+        .toList
+        .map(_.getBytes)
+
+      certificates.map { b =>
+        cf.generateCertificate(new ByteArrayInputStream(b))
+          .asInstanceOf[X509Certificate]
+      }
+    }
+    val keyStoreFromPem: KeyStore = {
+      val keyStore: KeyStore = KeyStore.getInstance(KeyStore.getDefaultType)
+      keyStore.load(null, password)
+      certificates.zipWithIndex.foreach {
+        case (certificate, index) =>
+          keyStore.setCertificateEntry(s"cert$index", certificate)
+      }
+      keyStore
+    }
+    tmf.init(keyStoreFromPem)
   
     val sslContext: SSLContext = SSLContext.getInstance("TLS")
     sslContext.init(keyManagerFactory.getKeyManagers, tmf.getTrustManagers, new SecureRandom)
@@ -45,7 +76,7 @@ object Main extends App {
     ConnectionContext.httpsServer(() => {
       val engine = sslContext.createSSLEngine()
       engine.setUseClientMode(false)
-      engine.setNeedClientAuth(true)
+      engine.setNeedClientAuth(false)
       engine
     })
   }
@@ -56,7 +87,7 @@ object Main extends App {
 
   implicit val sys: ActorSystem[Nothing] = ActorSystem(Behaviors.empty, "test")
   Http()
-    .newServerAt("localhost", 8443)
+    .newServerAt("here.mtls.proxy.com", 8443)
     .enableHttps(https)
     .bind(
       headerValueByType[`Tls-Session-Info`](`Tls-Session-Info`)(
