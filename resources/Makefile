@@ -1,6 +1,7 @@
 all: client.p12 server.p12 demoCA/private/ca.p12
 
-HOSTNAME=here.mtls.proxy.com
+#HOSTNAME=here.mtls.proxy.com
+HOSTNAME=localhost
 
 %key.pem:
 	openssl genrsa -out $@ 4096

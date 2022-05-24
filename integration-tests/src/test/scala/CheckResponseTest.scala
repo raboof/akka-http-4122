@@ -14,7 +14,7 @@ class CheckResponseTest extends wordspec.AnyWordSpec with CheckResponseTestScope
 
   "Server" should {
     "return success response" in {
-      val response = Await.result(client.singleRequest(HttpRequest(HttpMethods.GET, testUrl)), 5 seconds )
+      val response = Await.result(Http(system).singleRequest(HttpRequest(HttpMethods.GET, testUrl), https), 5 seconds )
       assert(response.status.intValue == 200)
     }
   }
@@ -22,7 +22,7 @@ class CheckResponseTest extends wordspec.AnyWordSpec with CheckResponseTestScope
 }
 
 trait CheckResponseTestScope {
-  val testUrl = "https://here.mtls.proxy.com:8443"
+  val testUrl = "https://localhost:8443"
   implicit val system = ActorSystem()
   implicit val dispatcher = system.dispatcher
   val https = {
@@ -58,11 +58,4 @@ trait CheckResponseTestScope {
   def loadX509Certificate(resourceName: String): Certificate =
     CertificateFactory.getInstance("X.509").generateCertificate(resourceStream(resourceName))
 
-  def akkaHttpClient(context: HttpsConnectionContext): HttpExt = {
-    val akkaHttp = Http()
-    akkaHttp.setDefaultClientHttpsContext(context)
-    akkaHttp
-  }
-
-  lazy val client = akkaHttpClient(https)
 }

@@ -97,7 +97,7 @@ object Main extends App {
         info => {
           if (info.session.getCipherSuite != "TLS_AES_256_GCM_SHA384") {
             log.info(info.session.getCipherSuite)
-            complete(InternalServerError)
+            complete(ImATeapot)
           } else {
             //log.info(info.session.getPeerCertificates.size.toString)
             complete(info.session.getCipherSuite)

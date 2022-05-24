@@ -1,2 +1,2 @@
-V	261125151459Z		01	unknown	/C=GB/ST=London/O=Global Security/OU=IT Department/CN=client
-V	261125151459Z		02	unknown	/C=GB/ST=London/O=Global Security/OU=IT Department/CN=here.mtls.proxy.com
+V	261128072931Z		01	unknown	/C=GB/ST=London/O=Global Security/OU=IT Department/CN=client
+V	261128072931Z		02	unknown	/C=GB/ST=London/O=Global Security/OU=IT Department/CN=localhost
